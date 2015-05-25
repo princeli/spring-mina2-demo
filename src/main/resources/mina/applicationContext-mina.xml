@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-2.5.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd"
+	default-lazy-init="false">
+	
+	<description>Mina配置文件</description>
+	
+	<bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+   		<property name="customEditors">
+    		<map>
+                <entry key="java.net.SocketAddress" value="org.apache.mina.integration.beans.InetSocketAddressEditor" >
+                </entry>
+    		</map>
+   		</property>
+	</bean> 
+	
+	<!-- the IoFilters -->
+	<bean id="executorFilter" class="org.apache.mina.filter.executor.ExecutorFilter" />
+	
+	<bean id="codecFilter" class="org.apache.mina.filter.codec.ProtocolCodecFilter">
+   		<constructor-arg>
+    		<bean class="com.princeli.codec.HttpServerProtocolCodecFactory"> 
+    			<constructor-arg><value>utf-8</value></constructor-arg>
+    		</bean>
+   		</constructor-arg>
+	</bean>
+	
+	<bean id="loggingFilter" class="org.apache.mina.filter.logging.LoggingFilter" />
+	
+	<!-- The non-SSL filter chain. -->
+	<bean id="filterChainBuilder" class="org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder">
+   		<property name="filters">
+    		<map>
+     			<entry key="protocolFilter" value-ref="codecFilter" />
+    		</map> 
+   		</property>
+	</bean>
+	
+	<bean id="minaAcceptor" class="org.apache.mina.transport.socket.nio.NioSocketAcceptor" init-method="bind" destroy-method="unbind">
+   		<property name="defaultLocalAddress" value="${http.listerner.port}" />
+   		<property name="handler" ref="protocolHandler" />  
+   		<property name="reuseAddress" value="true" />
+   		<property name="filterChainBuilder" ref="filterChainBuilder" /> 
+	</bean> 
+	
+	
+	<bean id="protocolHandler" class="com.princeli.handler.ProtocolHandler" >
+		<property name="businessMessageHandler" ref="businessMessageHandler"/>
+	</bean> 
+	
+	<bean id="businessMessageHandler"  class="com.princeli.handler.impl.BusinessMessageHandlerImpl"/>
+	
+	<!-- socket -->
+	<bean id="socketMinaAcceptor" class="org.apache.mina.transport.socket.nio.NioSocketAcceptor" init-method="bind" destroy-method="unbind">
+   		<property name="defaultLocalAddress" value="${socket.listerner.port}" />
+   		<property name="handler" ref="socketProtocolHandler" />  
+   		<property name="reuseAddress" value="true" />
+   		<property name="filterChainBuilder" ref="socketFilterChainBuilder" /> 
+	</bean> 
+	
+	 
+	<bean id="socketProtocolHandler" class="com.princeli.handler.SocketProtocolHandler" >
+		<property name="socketBusinessMessageHandler" ref="socketBusinessMessageHandler"/>
+	</bean> 
+	
+	<bean id="socketBusinessMessageHandler"  class="com.princeli.handler.impl.SocketBusinessMessageHandlerImpl"/>
+	
+	<bean id="socketFilterChainBuilder" class="org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder">
+   		<property name="filters">
+    		<map>
+     			<entry key="protocolFilter" value-ref="socketCodecFilter" />
+    		</map> 
+   		</property>
+	</bean>
+	
+	<bean id="socketCodecFilter" class="org.apache.mina.filter.codec.ProtocolCodecFilter">
+   		<constructor-arg>
+    		<bean class="com.princeli.codec.SocketServerProtocolCodecFactory"> 
+    			<constructor-arg><value>utf-8</value></constructor-arg>
+    		</bean>
+   		</constructor-arg>
+	</bean>
+</beans>
